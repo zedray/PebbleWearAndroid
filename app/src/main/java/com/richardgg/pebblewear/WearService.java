@@ -59,24 +59,27 @@ public class WearService extends NotificationListenerService {
         PebbleKit.registerReceivedDataHandler(this, new PebbleKit.PebbleDataReceiver(PEBBLE_APP_UUID) {
             @Override
             public void receiveData(final Context context, final int transactionId, final PebbleDictionary data) {
-                Log.d(TAG, "PebbleDataReceiver.receiveData() " + data.getInteger(1));
+
                 // Note: Don't do any UI work inside the Handler!
                 StatusBarNotification[] activeNotifications = getActiveNotifications();
                 switch (data.getInteger(1).intValue()) {
                     case LIST_REQUEST:
+                        Log.d(TAG, "PebbleDataReceiver.receiveData() LIST_REQUEST");
                         mNotificationInterface.listRequest(context, activeNotifications);
                         break;
 
                     case REMOVE_NOTIFICATION:
+                        Log.d(TAG, "PebbleDataReceiver.receiveData() REMOVE_NOTIFICATION");
                         NotificationInterface.removeNotification(service, activeNotifications, data.getInteger(2).intValue());
                         break;
 
                     case SEND_ACTIONS:
+                        Log.d(TAG, "PebbleDataReceiver.receiveData() SEND_ACTIONS");
                         mNotificationInterface.sendActions(context, activeNotifications, data.getInteger(2).intValue());
                         break;
 
                     default:
-                        // Do nothing.
+                        Log.w(TAG, "PebbleDataReceiver.receiveData() Unknown data " + data.getInteger(1));
                 }
                 PebbleKit.sendAckToPebble(context, transactionId);
             }

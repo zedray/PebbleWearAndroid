@@ -32,23 +32,17 @@ public class MessageInterface {
     public synchronized void send(Context context, PebbleDictionary pebbleDictionary) {
         if (pebbleDictionary != null) {
             mTransactionId += 1;
-            //Log.d(WearService.TAG, "MessageInterface.send() New message transactionId" + mTransactionId);
+            //Log.v(WearService.TAG, "MessageInterface.send() New message: " + mTransactionId);
             mMessageQueue.add(new Message(mTransactionId, pebbleDictionary));
         }
         if (mReadyForSend) {
             if (mMessageQueue.size() > 0) {
-                Message message = mMessageQueue.remove(0);
-                Log.d(WearService.TAG, "MessageInterface.send() Sending message: "
-                        + message.getTransactionId() + " + from queue of size: "
-                        + mMessageQueue.size());
+                Message message = mMessageQueue.get(0);
+                //Log.v(WearService.TAG, "MessageInterface.send() Sending message: "+ message.getTransactionId());
                 PebbleKit.sendDataToPebbleWithTransactionId(context, mPebbleAppUuid,
                         message.getMessage(), message.getTransactionId());
-            } else {
-                Log.d(WearService.TAG, "MessageInterface.send() Queue empty");
             }
             mReadyForSend = false;
-        } else {
-            Log.d(WearService.TAG, "MessageInterface.send() Not ready to send");
         }
     }
 
@@ -56,8 +50,7 @@ public class MessageInterface {
         for (Iterator<Message> iterator = mMessageQueue.listIterator(); iterator.hasNext(); ) {
             Message message = iterator.next();
             if (message.getTransactionId() == transactionId) {
-                Log.d(WearService.TAG, "MessageInterface.success() Removing from queue: "
-                        + message.getTransactionId());
+                //Log.v(WearService.TAG, "MessageInterface.success() Removing from queue: " + message.getTransactionId());
                 iterator.remove();
                 return;
             }
