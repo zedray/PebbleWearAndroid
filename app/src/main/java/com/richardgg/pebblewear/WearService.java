@@ -88,7 +88,7 @@ public class WearService extends NotificationListenerService {
         PebbleKit.registerReceivedNackHandler(this, new PebbleKit.PebbleNackReceiver(PEBBLE_APP_UUID) {
             @Override
             public void receiveNack(Context context, int transactionId) {
-                Log.d(TAG, "PebbleNackReceiver.receiveData()");
+                //Log.v(TAG, "PebbleNackReceiver.receiveNack() transactionId: " + transactionId);
                 mMessageInterface.fail(transactionId);
                 mMessageInterface.send(context, null);
             }
@@ -97,7 +97,7 @@ public class WearService extends NotificationListenerService {
         PebbleKit.registerReceivedAckHandler(this, new PebbleKit.PebbleAckReceiver(PEBBLE_APP_UUID) {
             @Override
             public void receiveAck(Context context, int transactionId) {
-                Log.d(TAG, "PebbleAckReceiver.receiveData() transactionId:" + transactionId);
+                //Log.v(TAG, "PebbleAckReceiver.receiveAck() transactionId: " + transactionId);
                 mMessageInterface.success(transactionId);
                 mMessageInterface.send(context, null);
             }

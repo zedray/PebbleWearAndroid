@@ -43,6 +43,7 @@ public class NotificationInterface {
     }
 
     public void listRequest(Context context, StatusBarNotification[] activeNotifications) {
+        Log.i(WearService.TAG, "NotificationInterface.listRequest() " + activeNotifications.length);
         StatusBarNotification[] topNotifications = new StatusBarNotification[5];
         for (StatusBarNotification notification : activeNotifications) {
             boolean found = false;
@@ -72,6 +73,7 @@ public class NotificationInterface {
     }
 
     public static void removeNotification(NotificationListenerService service, StatusBarNotification[] activeNotifications, int id) {
+        Log.i(WearService.TAG, "NotificationInterface.removeNotification() id: " + id);
         StatusBarNotification[] topNotifications = new StatusBarNotification[5];
         for (StatusBarNotification notification : activeNotifications) {
             boolean found = false;
