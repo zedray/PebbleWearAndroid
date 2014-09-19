@@ -38,7 +38,7 @@ public class PebbleWearService extends NotificationListenerService {
         }
 
         mMessageInterface = new MessageInterface(PEBBLE_APP_UUID);
-        mNotificationInterface = new NotificationInterface(mMessageInterface);
+        mNotificationInterface = new NotificationInterface(mMessageInterface, PEBBLE_APP_UUID);
         final NotificationListenerService service = this;
 
         PebbleKit.registerPebbleConnectedReceiver(getApplicationContext(), new BroadcastReceiver() {
@@ -100,8 +100,6 @@ public class PebbleWearService extends NotificationListenerService {
                 mMessageInterface.send(context, null);
             }
         });
-
-        PebbleKit.startAppOnPebble(getApplicationContext(), PEBBLE_APP_UUID);
     }
 
     @Override

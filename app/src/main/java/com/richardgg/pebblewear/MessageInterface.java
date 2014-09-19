@@ -16,7 +16,6 @@ import java.util.UUID;
  */
 public class MessageInterface {
 
-
     private boolean mReadyForSend;
     private List<Message> mMessageQueue;
     private int mTransactionId;

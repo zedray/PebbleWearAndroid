@@ -13,7 +13,10 @@ import android.service.notification.StatusBarNotification;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
+import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
+
+import java.util.UUID;
 
 /**
  * Created by mbrady on 9/19/14.
@@ -40,14 +43,17 @@ public class NotificationInterface {
 
     private MessageInterface mMessageInterface;
     private StatusBarNotification[] mWatchNotifications;
+    private UUID mPebbleAppUuid;
 
-    public NotificationInterface(MessageInterface messageInterface) {
+    public NotificationInterface(MessageInterface messageInterface, UUID pebbleAppUuid) {
         mMessageInterface = messageInterface;
+        mPebbleAppUuid = pebbleAppUuid;
         mWatchNotifications = new StatusBarNotification[5];
     }
 
     public void updateNotificationsList(Context context, StatusBarNotification notification,
                                         StatusBarNotification[] activeNotifications) {
+        Log.i(PebbleWearService.TAG, "NotificationInterface.updateNotificationsList()");
 
         int position = MAX_NOTIFICATIONS + 1;
         StatusBarNotification[] topNotifications = new StatusBarNotification[MAX_NOTIFICATIONS];
@@ -89,8 +95,9 @@ public class NotificationInterface {
                 // Update the notification.
                 updateNotification(mWatchNotifications, context, notification, updatedNotification);
             } else {
-                // Otherwise send new notification.
+                // Otherwise send new notification and put the Pebble Watch app into the foreground.
                 newNotification(context, notification, position);
+                PebbleKit.startAppOnPebble(context, mPebbleAppUuid);
             }
         }
     }
@@ -187,8 +194,8 @@ public class NotificationInterface {
         mMessageInterface.send(context, message);
 
         sendMainContent(context, sbn, position);
-        //sendIcon(context, sbn, position);
-        //sendImage(context, sbn, position);
+        sendIcon(context, sbn, position);
+        sendImage(context, sbn, position);
     }
 
     public void updateNotification(StatusBarNotification[] sWatchNotifications, Context context, StatusBarNotification sbn, int watchNo) {
@@ -214,12 +221,12 @@ public class NotificationInterface {
 
         // Update icon if needed.
         if (watchExtras.getInt(Notification.EXTRA_SMALL_ICON) != newExtras.getInt(Notification.EXTRA_SMALL_ICON)) {
-            //sendIcon(context, sbn, watchNo);
+            sendIcon(context, sbn, watchNo);
         }
 
         // Update image if needed.
         if (Utils.getImage(context, sWatchNotifications[watchNo]) != Utils.getImage(context, sbn)) {
-            //sendImage(context, sbn, watchNo);
+            sendImage(context, sbn, watchNo);
         }
     }
 
@@ -245,8 +252,9 @@ public class NotificationInterface {
 
             iconBitmap = Bitmap.createScaledBitmap(iconBitmap, 48, 48, true);
 
+            Log.i(PebbleWearService.TAG, "NotificationInterface.sendIcon() Sending icon...");
             for(int row = 0; row < 48; row++) {
-                Log.i(PebbleWearService.TAG, "NotificationInterface.sendIcon() Sending row");
+
                 PebbleDictionary dictionary = new PebbleDictionary();
 
                 byte iconData[] = new byte[48 / 8]; //6
@@ -276,6 +284,7 @@ public class NotificationInterface {
                 dictionary.addInt32(LINE, row);
                 mMessageInterface.send(context, dictionary);
             }
+            Log.i(PebbleWearService.TAG, "NotificationInterface.sendIcon() ...Icon sent");
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
@@ -322,13 +331,14 @@ public class NotificationInterface {
 
             int total_error[][] = new int[144][144];
 
+            Log.d(PebbleWearService.TAG, "NotificationInterface.sendImage() Sending image...");
             for (int row = 0; row < 144; row++) {
                 PebbleDictionary dictionary = new PebbleDictionary();
                 byte imageData[] = new byte[18]; //144 / 8
                 int bits[] = new int[8];
 
                 for(int col = 0; col < 144; col++) {
-                    Log.d(PebbleWearService.TAG, "NotificationInterface.sendImage() row=" + row + " col=" + col);
+
 
                     //get color from image
                     int color = image.getPixel(col, row);
@@ -406,6 +416,7 @@ public class NotificationInterface {
                 dictionary.addBytes(BYTES, imageData);
                 mMessageInterface.send(context, dictionary);
             }
+            Log.d(PebbleWearService.TAG, "NotificationInterface.sendImage() ...Image sent");
         }
     }
 }
