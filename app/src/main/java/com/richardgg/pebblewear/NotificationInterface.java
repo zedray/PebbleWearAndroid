@@ -20,6 +20,8 @@ import com.getpebble.android.kit.util.PebbleDictionary;
  */
 public class NotificationInterface {
 
+    private final static int MAX_NOTIFICATIONS = 5;
+
     // Keys.
     private final static int COMMAND = 0;
     private final static int BYTES = 1;
@@ -37,13 +39,64 @@ public class NotificationInterface {
     private final static byte ACTIONS = 7;
 
     private MessageInterface mMessageInterface;
+    private StatusBarNotification[] mWatchNotifications;
 
     public NotificationInterface(MessageInterface messageInterface) {
         mMessageInterface = messageInterface;
+        mWatchNotifications = new StatusBarNotification[5];
+    }
+
+    public void updateNotificationsList(Context context, StatusBarNotification notification,
+                                        StatusBarNotification[] activeNotifications) {
+
+        int position = MAX_NOTIFICATIONS + 1;
+        StatusBarNotification[] topNotifications = new StatusBarNotification[MAX_NOTIFICATIONS];
+        for (StatusBarNotification activeNotification : activeNotifications) {
+            boolean found = false;
+            // What are we trying to do here?
+            for (int i = 0; i < MAX_NOTIFICATIONS; i++) {
+                if (!found) {
+                    if (topNotifications[i] != null) {
+                        if (topNotifications[i].getNotification().priority <= activeNotification.getNotification().priority) {
+                            System.arraycopy(topNotifications, i, topNotifications, i + 1, 4 - i); // What does 4 mean???
+                            topNotifications[i] = activeNotification;
+                            found = true;
+                        }
+                    } else {
+                        topNotifications[i] = activeNotification;
+                        found = true;
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < MAX_NOTIFICATIONS; i++) {
+            if (notification.getId() == topNotifications[i].getId()) {
+                position = i;
+            }
+        }
+
+        if (position < MAX_NOTIFICATIONS) {
+            // Check if updated notification.
+            int updatedNotification = -1;
+            for (int i = 0; i < mWatchNotifications.length; i++) {
+                if (mWatchNotifications[i] != null && notification.getId() == mWatchNotifications[i].getId()) {
+                    updatedNotification = i;
+                }
+            }
+
+            if (updatedNotification >= 0) {
+                // Update the notification.
+                updateNotification(mWatchNotifications, context, notification, updatedNotification);
+            } else {
+                // Otherwise send new notification.
+                newNotification(context, notification, position);
+            }
+        }
     }
 
     public void listRequest(Context context, StatusBarNotification[] activeNotifications) {
-        Log.i(WearService.TAG, "NotificationInterface.listRequest() " + activeNotifications.length);
+        Log.i(PebbleWearService.TAG, "NotificationInterface.listRequest() " + activeNotifications.length);
         StatusBarNotification[] topNotifications = new StatusBarNotification[5];
         for (StatusBarNotification notification : activeNotifications) {
             boolean found = false;
@@ -73,7 +126,7 @@ public class NotificationInterface {
     }
 
     public static void removeNotification(NotificationListenerService service, StatusBarNotification[] activeNotifications, int id) {
-        Log.i(WearService.TAG, "NotificationInterface.removeNotification() id: " + id);
+        Log.i(PebbleWearService.TAG, "NotificationInterface.removeNotification() id: " + id);
         StatusBarNotification[] topNotifications = new StatusBarNotification[5];
         for (StatusBarNotification notification : activeNotifications) {
             boolean found = false;
@@ -99,7 +152,7 @@ public class NotificationInterface {
     }
 
     public void sendActions(Context context, StatusBarNotification[] activeNotifications, int id) {
-        Log.i(WearService.TAG, "NotificationInterface.sendActions()");
+        Log.i(PebbleWearService.TAG, "NotificationInterface.sendActions()");
         StatusBarNotification[] topNotifications = new StatusBarNotification[5];
         for(StatusBarNotification notification : activeNotifications) {
             boolean found = false;
@@ -127,7 +180,7 @@ public class NotificationInterface {
     }
 
     public void newNotification(Context context, StatusBarNotification sbn, int position) {
-        Log.i(WearService.TAG, "NotificationInterface.newNotification() position " + position);
+        Log.i(PebbleWearService.TAG, "NotificationInterface.newNotification() position " + position);
         PebbleDictionary message = new PebbleDictionary();
         message.addInt8(COMMAND, CLEAR);
         message.addInt32(ID, position);
@@ -139,7 +192,7 @@ public class NotificationInterface {
     }
 
     public void updateNotification(StatusBarNotification[] sWatchNotifications, Context context, StatusBarNotification sbn, int watchNo) {
-        Log.d(WearService.TAG, "NotificationInterface.updateNotification()");
+        Log.d(PebbleWearService.TAG, "NotificationInterface.updateNotification()");
 
         // For convenience.
         Bundle watchExtras = sWatchNotifications[watchNo].getNotification().extras;
@@ -171,12 +224,12 @@ public class NotificationInterface {
     }
 
     public void sendIcon(Context context, StatusBarNotification sbn, int position) {
-        Log.i(WearService.TAG, "NotificationInterface.sendIcon()");
+        Log.i(PebbleWearService.TAG, "NotificationInterface.sendIcon()");
         try {
             // Get app name.
             String packageName = sbn.getPackageName();
             //create context (to access resources) may create exception
-            Context appContext = context.createPackageContext(packageName, WearService.CONTEXT_IGNORE_SECURITY);
+            Context appContext = context.createPackageContext(packageName, PebbleWearService.CONTEXT_IGNORE_SECURITY);
             //get iconID
             int iconID = sbn.getNotification().extras.getInt(Notification.EXTRA_SMALL_ICON);
             //get the drawable as HIGH_DENSITY (48x48px) (32x32 is another option, but may scale poorly)
@@ -193,7 +246,7 @@ public class NotificationInterface {
             iconBitmap = Bitmap.createScaledBitmap(iconBitmap, 48, 48, true);
 
             for(int row = 0; row < 48; row++) {
-                Log.i(WearService.TAG, "NotificationInterface.sendIcon() Sending row");
+                Log.i(PebbleWearService.TAG, "NotificationInterface.sendIcon() Sending row");
                 PebbleDictionary dictionary = new PebbleDictionary();
 
                 byte iconData[] = new byte[48 / 8]; //6
@@ -229,7 +282,7 @@ public class NotificationInterface {
     }
 
     public void sendMainContent(Context context, StatusBarNotification sbn, int position) {
-        Log.i(WearService.TAG, "NotificationInterface.sendMainContent()");
+        Log.i(PebbleWearService.TAG, "NotificationInterface.sendMainContent()");
 
         // If vibrates.
         Bundle extras = sbn.getNotification().extras;
@@ -242,7 +295,7 @@ public class NotificationInterface {
     }
 
     public void sendImage(Context context, StatusBarNotification sbn, int position) {
-        Log.i(WearService.TAG, "NotificationInterface.sendImage()");
+        Log.i(PebbleWearService.TAG, "NotificationInterface.sendImage()");
 
         Bitmap image = Utils.getImage(context, sbn);
         if(image!=null) {
@@ -263,7 +316,7 @@ public class NotificationInterface {
             int left = (width - 144) / 2;
             //crop to 144x144
 
-            Log.d(WearService.TAG, "NotificationInterface.sendImage() width=" + width + " height=" + height + " top=" + top + " left=" + left);
+            Log.d(PebbleWearService.TAG, "NotificationInterface.sendImage() width=" + width + " height=" + height + " top=" + top + " left=" + left);
             image = Bitmap.createBitmap(image, left, top, 144, 144);
 
 
@@ -275,7 +328,7 @@ public class NotificationInterface {
                 int bits[] = new int[8];
 
                 for(int col = 0; col < 144; col++) {
-                    Log.d(WearService.TAG, "NotificationInterface.sendImage() row=" + row + " col=" + col);
+                    Log.d(PebbleWearService.TAG, "NotificationInterface.sendImage() row=" + row + " col=" + col);
 
                     //get color from image
                     int color = image.getPixel(col, row);

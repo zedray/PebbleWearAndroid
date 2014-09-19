@@ -13,19 +13,18 @@ import com.getpebble.android.kit.util.PebbleDictionary;
 import java.util.UUID;
 
 /**
- * Based on a project created by RichardGG on 1/09/2014.
+ * Inspired by PebbleWear, created by RichardGG on 1/09/2014.
  */
-public class WearService extends NotificationListenerService {
+public class PebbleWearService extends NotificationListenerService {
 
     public final static String TAG = "WEAR";
-    public final static UUID PEBBLE_APP_UUID = UUID.fromString("69fbcd85-91ae-4fbf-8d71-a6321dca8b28");
+    private final static UUID PEBBLE_APP_UUID = UUID.fromString("69fbcd85-91ae-4fbf-8d71-a6321dca8b28"); //TODO: Use your own WatchApp code.
 
-    // Keys.
+    // Incoming request type keys.
     private final static int LIST_REQUEST = 0;
     private final static int REMOVE_NOTIFICATION = 1;
     private final static int SEND_ACTIONS = 2;
 
-    private StatusBarNotification[] mWatchNotifications;
     private MessageInterface mMessageInterface;
     private NotificationInterface mNotificationInterface;
 
@@ -38,7 +37,6 @@ public class WearService extends NotificationListenerService {
             return;
         }
 
-        mWatchNotifications = new StatusBarNotification[5];
         mMessageInterface = new MessageInterface(PEBBLE_APP_UUID);
         mNotificationInterface = new NotificationInterface(mMessageInterface);
         final NotificationListenerService service = this;
@@ -116,56 +114,15 @@ public class WearService extends NotificationListenerService {
         Log.i(TAG, "WearService.onNotificationPosted() "
                 + Utils.getTitleContent(notification.getNotification().extras) + " - "
                 + Utils.getTextContent(notification.getNotification().extras));
-
-        int position = 6;
-        StatusBarNotification[] topNotifications = new StatusBarNotification[5];
-        for(StatusBarNotification activeNotification : getActiveNotifications()) {
-            boolean found = false;
-            for (int i = 0; i < 5; i++) {
-                if (!found) {
-                    if (topNotifications[i] != null) {
-                        if (topNotifications[i].getNotification().priority <= activeNotification.getNotification().priority) {
-                            System.arraycopy(topNotifications, i, topNotifications, i + 1, 4 - i);
-                            topNotifications[i] = activeNotification;
-                            found = true;
-                        }
-                    } else {
-                        topNotifications[i] = activeNotification;
-                        found = true;
-                    }
-                }
-            }
-        }
-
-        for (int i = 0; i < 5; i++) {
-            if (notification.getId() == topNotifications[i].getId()) {
-                position = i;
-            }
-        }
-
-        if (position < 5) {
-            // Check if updated notification.
-            int updatedNotification = -1;
-            for (int i = 0; i < mWatchNotifications.length; i++) {
-                if (mWatchNotifications[i] != null && notification.getId() == mWatchNotifications[i].getId()) {
-                    updatedNotification = i;
-                }
-            }
-
-            if (updatedNotification >= 0) {
-                // Update the notification.
-                mNotificationInterface.updateNotification(mWatchNotifications, getApplicationContext(), notification, updatedNotification);
-            } else {
-                // Otherwise send new notification.
-                mNotificationInterface.newNotification(getApplicationContext(), notification, position);
-            }
-        }
+        mNotificationInterface.updateNotificationsList(getApplicationContext(), notification,
+                getActiveNotifications());
     }
 
     @Override
     public void onNotificationRemoved(StatusBarNotification notification) {
-        Log.i("Wear", "WearService.onNotificationRemoved() "
+        Log.i(TAG, "WearService.onNotificationRemoved() "
                 + Utils.getTitleContent(notification.getNotification().extras) + " - "
                 + Utils.getTextContent(notification.getNotification().extras));
+        // TODO: Clear the notification on the Pebble.
     }
 }

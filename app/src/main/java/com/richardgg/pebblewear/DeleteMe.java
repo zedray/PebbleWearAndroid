@@ -40,7 +40,7 @@ public class DeleteMe {
         }
         messageInterface.send(context, message);
 
-        Log.d(WearService.TAG, "sent titles");
+        Log.d(PebbleWearService.TAG, "sent titles");
 
         message = new PebbleDictionary();
         for(int i = 0; i < 5; i++) {
@@ -53,6 +53,6 @@ public class DeleteMe {
         }
         messageInterface.send(context, message);
 
-        Log.d(WearService.TAG, "sent text");
+        Log.d(PebbleWearService.TAG, "sent text");
     }
 }
