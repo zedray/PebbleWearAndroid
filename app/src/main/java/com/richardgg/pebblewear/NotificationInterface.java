@@ -104,10 +104,10 @@ public class NotificationInterface {
 
     public void listRequest(Context context, StatusBarNotification[] activeNotifications) {
         Log.i(PebbleWearService.TAG, "NotificationInterface.listRequest() " + activeNotifications.length);
-        StatusBarNotification[] topNotifications = new StatusBarNotification[5];
+        StatusBarNotification[] topNotifications = new StatusBarNotification[MAX_NOTIFICATIONS];
         for (StatusBarNotification notification : activeNotifications) {
             boolean found = false;
-            for(int i = 0; i < 5; i++) {
+            for(int i = 0; i < MAX_NOTIFICATIONS; i++) {
                 if (!found) {
                     if (topNotifications[i] != null) {
                         if (topNotifications[i].getNotification().priority <= notification.getNotification().priority){
@@ -125,25 +125,25 @@ public class NotificationInterface {
             }
         }
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < MAX_NOTIFICATIONS; i++) {
             if (topNotifications[i] != null) {
                 newNotification(context, topNotifications[i], i);
             }
         }
     }
 
-    public static void removeNotification(NotificationListenerService service, StatusBarNotification[] activeNotifications, int id) {
+    public static StatusBarNotification removeNotification(StatusBarNotification[] activeNotifications, int id) {
         Log.i(PebbleWearService.TAG, "NotificationInterface.removeNotification() id: " + id);
-        StatusBarNotification[] topNotifications = new StatusBarNotification[5];
+        StatusBarNotification[] topNotifications = new StatusBarNotification[MAX_NOTIFICATIONS];
+
+        // What are we trying to do here?
         for (StatusBarNotification notification : activeNotifications) {
             boolean found = false;
-            for(int i = 0; i < 5; i++) {
+            for(int i = 0; i < MAX_NOTIFICATIONS; i++) {
                 if (!found) {
                     if (topNotifications[i] != null) {
                         if (topNotifications[i].getNotification().priority <= notification.getNotification().priority){
-                            for (int j = 4; j > i; j--) {
-                                topNotifications[j] = topNotifications[j-1];
-                            }
+                            System.arraycopy(topNotifications, i, topNotifications, i + 1, 4 - i); // Whats with the 4?
                             topNotifications[i] = notification;
                             found = true;
                         }
@@ -155,19 +155,19 @@ public class NotificationInterface {
             }
         }
 
-        service.cancelNotification(topNotifications[id].getPackageName(), topNotifications[id].getTag(), topNotifications[id].getId());
+        return topNotifications[id];
     }
 
     public void sendActions(Context context, StatusBarNotification[] activeNotifications, int id) {
         Log.i(PebbleWearService.TAG, "NotificationInterface.sendActions()");
-        StatusBarNotification[] topNotifications = new StatusBarNotification[5];
+        StatusBarNotification[] topNotifications = new StatusBarNotification[MAX_NOTIFICATIONS];
         for(StatusBarNotification notification : activeNotifications) {
             boolean found = false;
-            for(int i = 0; i < 5; i++) {
+            for(int i = 0; i < MAX_NOTIFICATIONS; i++) {
                 if (!found) {
                     if (topNotifications[i] != null) {
                         if (topNotifications[i].getNotification().priority <= notification.getNotification().priority) {
-                            System.arraycopy(topNotifications, i, topNotifications, i + 1, 4 - i);
+                            System.arraycopy(topNotifications, i, topNotifications, i + 1, 4 - i); // Whats with the 4?
                             topNotifications[i] = notification;
                             found = true;
                         }

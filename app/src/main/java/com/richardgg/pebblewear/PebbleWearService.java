@@ -39,7 +39,6 @@ public class PebbleWearService extends NotificationListenerService {
 
         mMessageInterface = new MessageInterface(PEBBLE_APP_UUID);
         mNotificationInterface = new NotificationInterface(mMessageInterface, PEBBLE_APP_UUID);
-        final NotificationListenerService service = this;
 
         PebbleKit.registerPebbleConnectedReceiver(getApplicationContext(), new BroadcastReceiver() {
             @Override
@@ -68,7 +67,9 @@ public class PebbleWearService extends NotificationListenerService {
 
                     case REMOVE_NOTIFICATION:
                         Log.d(TAG, "PebbleDataReceiver.receiveData() REMOVE_NOTIFICATION");
-                        NotificationInterface.removeNotification(service, activeNotifications, data.getInteger(2).intValue());
+                        StatusBarNotification notification = NotificationInterface.removeNotification(
+                                activeNotifications, data.getInteger(2).intValue());
+                        cancelNotification(notification.getPackageName(), notification.getTag(), notification.getId());
                         break;
 
                     case SEND_ACTIONS:

@@ -1,7 +1,6 @@
 package com.richardgg.pebblewear;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
