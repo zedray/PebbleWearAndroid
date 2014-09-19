@@ -13,7 +13,8 @@ import com.getpebble.android.kit.util.PebbleDictionary;
 import java.util.UUID;
 
 /**
- * Inspired by PebbleWear, created by RichardGG on 1/09/2014.
+ * Created by mbrady on 9/19/14.
+ * Inspired by PebbleWear, created by RichardGG.
  */
 public class PebbleWearService extends NotificationListenerService {
 
@@ -31,15 +32,15 @@ public class PebbleWearService extends NotificationListenerService {
     @Override
     public void onCreate() {
         Log.i(TAG, "WearService.onCreate() Pebble is " + ((PebbleKit.isWatchConnected(getApplicationContext())) ? "connected" : "not connected"));
+
+        // Check if Pebble is supported.
         if (!PebbleKit.areAppMessagesSupported(getApplicationContext())) {
             Log.i(TAG, "App Message is not supported!");
             stopSelf();
             return;
         }
 
-        mMessageInterface = new MessageInterface(PEBBLE_APP_UUID);
-        mNotificationInterface = new NotificationInterface(mMessageInterface, PEBBLE_APP_UUID);
-
+        // Listen for Pebble connections.
         PebbleKit.registerPebbleConnectedReceiver(getApplicationContext(), new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -53,6 +54,11 @@ public class PebbleWearService extends NotificationListenerService {
             }
         });
 
+        // Setup components.
+        mMessageInterface = new MessageInterface(PEBBLE_APP_UUID);
+        mNotificationInterface = new NotificationInterface(mMessageInterface, PEBBLE_APP_UUID);
+
+        // Handle incoming data.
         PebbleKit.registerReceivedDataHandler(this, new PebbleKit.PebbleDataReceiver(PEBBLE_APP_UUID) {
             @Override
             public void receiveData(final Context context, final int transactionId, final PebbleDictionary data) {
@@ -79,11 +85,13 @@ public class PebbleWearService extends NotificationListenerService {
 
                     default:
                         Log.w(TAG, "PebbleDataReceiver.receiveData() Unknown data " + data.getInteger(1));
+                        // TODO: Run an action intent on the device.
                 }
                 PebbleKit.sendAckToPebble(context, transactionId);
             }
         });
 
+        // Handle NACK.
         PebbleKit.registerReceivedNackHandler(this, new PebbleKit.PebbleNackReceiver(PEBBLE_APP_UUID) {
             @Override
             public void receiveNack(Context context, int transactionId) {
@@ -93,6 +101,7 @@ public class PebbleWearService extends NotificationListenerService {
             }
         });
 
+        // Handle ACK.
         PebbleKit.registerReceivedAckHandler(this, new PebbleKit.PebbleAckReceiver(PEBBLE_APP_UUID) {
             @Override
             public void receiveAck(Context context, int transactionId) {
