@@ -7,6 +7,8 @@ import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -14,40 +16,75 @@ import java.util.UUID;
  */
 public class MessageInterface {
 
+
     private boolean mReadyForSend;
-    private ArrayList<PebbleDictionary> mMessageQueue;
+    private List<Message> mMessageQueue;
+    private int mTransactionId;
     private UUID mPebbleAppUuid;
 
     public MessageInterface(UUID pebbleAppUuid) {
         mPebbleAppUuid = pebbleAppUuid;
         mReadyForSend = true;
-        mMessageQueue = new ArrayList<PebbleDictionary>();
+        mTransactionId = 0;
+        mMessageQueue = new ArrayList<Message>();
     }
 
-    public synchronized void send(Context context, PebbleDictionary message) {
-        if (message != null) {
-            mMessageQueue.add(message);
+    public synchronized void send(Context context, PebbleDictionary pebbleDictionary) {
+        if (pebbleDictionary != null) {
+            mTransactionId += 1;
+            //Log.d(WearService.TAG, "MessageInterface.send() New message transactionId" + mTransactionId);
+            mMessageQueue.add(new Message(mTransactionId, pebbleDictionary));
         }
-        if (mReadyForSend && mMessageQueue.size() > 0) {
-            PebbleKit.sendDataToPebble(context, mPebbleAppUuid, mMessageQueue.get(0));
+        if (mReadyForSend) {
+            if (mMessageQueue.size() > 0) {
+                Message message = mMessageQueue.remove(0);
+                Log.d(WearService.TAG, "MessageInterface.send() Sending message: "
+                        + message.getTransactionId() + " + from queue of size: "
+                        + mMessageQueue.size());
+                PebbleKit.sendDataToPebbleWithTransactionId(context, mPebbleAppUuid,
+                        message.getMessage(), message.getTransactionId());
+            } else {
+                Log.d(WearService.TAG, "MessageInterface.send() Queue empty");
+            }
             mReadyForSend = false;
-        }
-        if (mMessageQueue.isEmpty()) {
-            Log.d(WearService.TAG, "MessageInterface.send() Done");
-        }
-    }
-
-    public synchronized void success() {
-        if (!mMessageQueue.isEmpty()) {
-            mMessageQueue.remove(0);
+        } else {
+            Log.d(WearService.TAG, "MessageInterface.send() Not ready to send");
         }
     }
 
-    public synchronized void setReady() {
+    public synchronized void success(int transactionId) {
+        for (Iterator<Message> iterator = mMessageQueue.listIterator(); iterator.hasNext(); ) {
+            Message message = iterator.next();
+            if (message.getTransactionId() == transactionId) {
+                Log.d(WearService.TAG, "MessageInterface.success() Removing from queue: "
+                        + message.getTransactionId());
+                iterator.remove();
+                return;
+            }
+        }
         mReadyForSend = true;
     }
 
-    public synchronized void cancel() {
-        mMessageQueue.clear();
+    public void fail(int transactionId) {
+        // TODO: Do something smart with the NACK'ed responses.
+        success(transactionId);
+    }
+
+    private class Message {
+        int mTransactionId;
+        PebbleDictionary mMessage;
+
+        private Message(int transactionId, PebbleDictionary message) {
+            mTransactionId = transactionId;
+            mMessage = message;
+        }
+
+        public int getTransactionId() {
+            return mTransactionId;
+        }
+
+        public PebbleDictionary getMessage() {
+            return mMessage;
+        }
     }
 }

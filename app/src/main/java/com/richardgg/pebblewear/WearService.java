@@ -1,6 +1,8 @@
 package com.richardgg.pebblewear;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
@@ -18,61 +20,99 @@ public class WearService extends NotificationListenerService {
     public final static String TAG = "WEAR";
     public final static UUID PEBBLE_APP_UUID = UUID.fromString("69fbcd85-91ae-4fbf-8d71-a6321dca8b28");
 
+    // Keys.
+    private final static int LIST_REQUEST = 0;
+    private final static int REMOVE_NOTIFICATION = 1;
+    private final static int SEND_ACTIONS = 2;
+
     private StatusBarNotification[] mWatchNotifications;
     private MessageInterface mMessageInterface;
     private NotificationInterface mNotificationInterface;
 
     @Override
     public void onCreate() {
-        Log.d(TAG, "WearService.onCreate()");
+        Log.i(TAG, "WearService.onCreate() Pebble is " + ((PebbleKit.isWatchConnected(getApplicationContext())) ? "connected" : "not connected"));
+        if (!PebbleKit.areAppMessagesSupported(getApplicationContext())) {
+            Log.i(TAG, "App Message is not supported!");
+            stopSelf();
+            return;
+        }
+
         mWatchNotifications = new StatusBarNotification[5];
         mMessageInterface = new MessageInterface(PEBBLE_APP_UUID);
         mNotificationInterface = new NotificationInterface(mMessageInterface);
         final NotificationListenerService service = this;
 
+        PebbleKit.registerPebbleConnectedReceiver(getApplicationContext(), new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.w(TAG, "PebbleConnectedReceiver.onReceive() Pebble connected!");
+            }
+        });
+        PebbleKit.registerPebbleDisconnectedReceiver(getApplicationContext(), new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.w(TAG, "PebbleConnectedReceiver.onReceive() Pebble disconnected!");
+            }
+        });
+
         PebbleKit.registerReceivedDataHandler(this, new PebbleKit.PebbleDataReceiver(PEBBLE_APP_UUID) {
             @Override
             public void receiveData(final Context context, final int transactionId, final PebbleDictionary data) {
                 Log.d(TAG, "PebbleDataReceiver.receiveData() " + data.getInteger(1));
+                // Note: Don't do any UI work inside the Handler!
                 StatusBarNotification[] activeNotifications = getActiveNotifications();
-                if (data.getInteger(1) == 0)
-                    mNotificationInterface.listRequest(context, activeNotifications);
-                if (data.getInteger(1) == 1)
-                    NotificationInterface.removeNotification(service, activeNotifications, data.getInteger(2).intValue());
-                if (data.getInteger(1) == 2)
-                    mNotificationInterface.sendActions(context, activeNotifications, data.getInteger(2).intValue());
+                switch (data.getInteger(1).intValue()) {
+                    case LIST_REQUEST:
+                        mNotificationInterface.listRequest(context, activeNotifications);
+                        break;
+
+                    case REMOVE_NOTIFICATION:
+                        NotificationInterface.removeNotification(service, activeNotifications, data.getInteger(2).intValue());
+                        break;
+
+                    case SEND_ACTIONS:
+                        mNotificationInterface.sendActions(context, activeNotifications, data.getInteger(2).intValue());
+                        break;
+
+                    default:
+                        // Do nothing.
+                }
+                PebbleKit.sendAckToPebble(context, transactionId);
             }
         });
 
         PebbleKit.registerReceivedNackHandler(this, new PebbleKit.PebbleNackReceiver(PEBBLE_APP_UUID) {
             @Override
-            public void receiveNack(final Context context, final int transactionId){
+            public void receiveNack(Context context, int transactionId) {
                 Log.d(TAG, "PebbleNackReceiver.receiveData()");
-                mMessageInterface.cancel();
-                mMessageInterface.setReady();
+                mMessageInterface.fail(transactionId);
                 mMessageInterface.send(context, null);
             }
         });
 
         PebbleKit.registerReceivedAckHandler(this, new PebbleKit.PebbleAckReceiver(PEBBLE_APP_UUID) {
             @Override
-            public void receiveAck(final Context context, final int transactionId) {
-                Log.d(TAG, "PebbleAckReceiver.receiveData()");
-                mMessageInterface.success();
-                mMessageInterface.setReady();
+            public void receiveAck(Context context, int transactionId) {
+                Log.d(TAG, "PebbleAckReceiver.receiveData() transactionId:" + transactionId);
+                mMessageInterface.success(transactionId);
                 mMessageInterface.send(context, null);
             }
         });
+
+        PebbleKit.startAppOnPebble(getApplicationContext(), PEBBLE_APP_UUID);
     }
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "WearService.onDestroy()");
+        Log.i(TAG, "WearService.onDestroy()");
     }
 
     @Override
     public void onNotificationPosted(StatusBarNotification notification) {
-        Log.d(TAG, "WearService.onNotificationPosted()");
+        Log.i(TAG, "WearService.onNotificationPosted() "
+                + Utils.getTitleContent(notification.getNotification().extras) + " - "
+                + Utils.getTextContent(notification.getNotification().extras));
 
         int position = 6;
         StatusBarNotification[] topNotifications = new StatusBarNotification[5];
@@ -120,7 +160,9 @@ public class WearService extends NotificationListenerService {
     }
 
     @Override
-    public void onNotificationRemoved(StatusBarNotification sbn) {
-        Log.d("Wear", "WearService.onNotificationRemoved()");
+    public void onNotificationRemoved(StatusBarNotification notification) {
+        Log.i("Wear", "WearService.onNotificationRemoved() "
+                + Utils.getTitleContent(notification.getNotification().extras) + " - "
+                + Utils.getTextContent(notification.getNotification().extras));
     }
 }

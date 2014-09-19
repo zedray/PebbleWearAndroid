@@ -97,7 +97,7 @@ public class NotificationInterface {
     }
 
     public void sendActions(Context context, StatusBarNotification[] activeNotifications, int id) {
-        Log.d(WearService.TAG, "test . test");
+        Log.i(WearService.TAG, "NotificationInterface.sendActions()");
         StatusBarNotification[] topNotifications = new StatusBarNotification[5];
         for(StatusBarNotification notification : activeNotifications) {
             boolean found = false;
@@ -125,15 +125,15 @@ public class NotificationInterface {
     }
 
     public void newNotification(Context context, StatusBarNotification sbn, int position) {
-        Log.d(WearService.TAG, "NotificationInterface.newNotification()");
+        Log.i(WearService.TAG, "NotificationInterface.newNotification() position " + position);
         PebbleDictionary message = new PebbleDictionary();
         message.addInt8(COMMAND, CLEAR);
         message.addInt32(ID, position);
         mMessageInterface.send(context, message);
 
         sendMainContent(context, sbn, position);
-        sendIcon(context, sbn, position);
-        sendImage(context, sbn, position);
+        //sendIcon(context, sbn, position);
+        //sendImage(context, sbn, position);
     }
 
     public void updateNotification(StatusBarNotification[] sWatchNotifications, Context context, StatusBarNotification sbn, int watchNo) {
@@ -159,16 +159,17 @@ public class NotificationInterface {
 
         // Update icon if needed.
         if (watchExtras.getInt(Notification.EXTRA_SMALL_ICON) != newExtras.getInt(Notification.EXTRA_SMALL_ICON)) {
-            sendIcon(context, sbn, watchNo);
+            //sendIcon(context, sbn, watchNo);
         }
 
         // Update image if needed.
         if (Utils.getImage(context, sWatchNotifications[watchNo]) != Utils.getImage(context, sbn)) {
-            sendImage(context, sbn, watchNo);
+            //sendImage(context, sbn, watchNo);
         }
     }
 
     public void sendIcon(Context context, StatusBarNotification sbn, int position) {
+        Log.i(WearService.TAG, "NotificationInterface.sendIcon()");
         try {
             // Get app name.
             String packageName = sbn.getPackageName();
@@ -190,6 +191,7 @@ public class NotificationInterface {
             iconBitmap = Bitmap.createScaledBitmap(iconBitmap, 48, 48, true);
 
             for(int row = 0; row < 48; row++) {
+                Log.i(WearService.TAG, "NotificationInterface.sendIcon() Sending row");
                 PebbleDictionary dictionary = new PebbleDictionary();
 
                 byte iconData[] = new byte[48 / 8]; //6
@@ -225,6 +227,8 @@ public class NotificationInterface {
     }
 
     public void sendMainContent(Context context, StatusBarNotification sbn, int position) {
+        Log.i(WearService.TAG, "NotificationInterface.sendMainContent()");
+
         // If vibrates.
         Bundle extras = sbn.getNotification().extras;
 
@@ -233,11 +237,11 @@ public class NotificationInterface {
         message.addInt32(ID, position);
         message.addBytes(BYTES, Utils.getTextByes(extras));
         mMessageInterface.send(context, message);
-
-        Log.d(WearService.TAG, "PWS . sent");
     }
 
     public void sendImage(Context context, StatusBarNotification sbn, int position) {
+        Log.i(WearService.TAG, "NotificationInterface.sendImage()");
+
         Bitmap image = Utils.getImage(context, sbn);
         if(image!=null) {
             // Figure out shortest direction.
@@ -257,7 +261,7 @@ public class NotificationInterface {
             int left = (width - 144) / 2;
             //crop to 144x144
 
-            Log.d(WearService.TAG, "PebbleWearService .  width = " + width + " height = " + height + " top = " + top + " left = " + left);
+            Log.d(WearService.TAG, "NotificationInterface.sendImage() width=" + width + " height=" + height + " top=" + top + " left=" + left);
             image = Bitmap.createBitmap(image, left, top, 144, 144);
 
 
@@ -268,7 +272,8 @@ public class NotificationInterface {
                 byte imageData[] = new byte[18]; //144 / 8
                 int bits[] = new int[8];
 
-                for(int col = 0; col < 144; col++){
+                for(int col = 0; col < 144; col++) {
+                    Log.d(WearService.TAG, "NotificationInterface.sendImage() row=" + row + " col=" + col);
 
                     //get color from image
                     int color = image.getPixel(col, row);
